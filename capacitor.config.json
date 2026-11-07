@@ -1,0 +1,8 @@
+{
+  "appId": "com.fan.saiyanworldremake",
+  "appName": "Saiyan World Remake",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
