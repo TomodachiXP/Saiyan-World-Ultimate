@@ -111,6 +111,10 @@ h2 { font-family: var(--display); font-size: calc(var(--u) * 6); letter-spacing:
 .fx { position: absolute; pointer-events: none; z-index: 90; }
 .fx.orb, .fx.boom { border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, #fff 0 26%, var(--c) 58%, transparent 72%); box-shadow: 0 0 calc(var(--u) * 3) var(--c); }
 .fx.feixe { transform-origin: 0 50%; }
+.fld.chk { display: flex; gap: 8px; align-items: center; font-size: calc(var(--u) * 2.6); }
+.fx.proj { border-radius: 50%; transform: translate(-50%, -50%); background: radial-gradient(circle, #fff 0 30%, var(--c) 62%, transparent 74%); box-shadow: 0 0 calc(var(--u) * 1.6) var(--c); }
+.fx.shu { transform: translate(-50%, -50%); background: var(--c); clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); filter: drop-shadow(0 0 2px #000); }
+.fx.mis { transform: translate(-50%, -50%); border-radius: 40% 90% 90% 40%; background: linear-gradient(90deg, #ffb347, #fff 40%, var(--c)); box-shadow: -10px 0 8px #ff7a1c88; }
 .fx.feixe i { display: block; width: 100%; height: 100%; transform-origin: 0 50%; border-radius: 999px; background: linear-gradient(180deg, transparent 0, var(--c) 24%, #fff 50%, var(--c) 76%, transparent 100%); box-shadow: 0 0 calc(var(--u) * 2.4) var(--c); }
 .float {
   position: absolute; top: 0; left: 50%; font-family: var(--display); font-weight: 700; font-size: calc(var(--u) * 5);
@@ -399,6 +403,12 @@ input[type=range] { min-height: 32px; }
         <label class="fld">Juntar pedaços próximos: <b id="aJoinV"></b>
           <input type="range" id="aJoin" min="0" max="8" value="2">
         </label>
+        <label class="fld chk"><input type="checkbox" id="aBur" checked> Tirar fundo preso (entre braço e corpo)</label>
+        <label class="fld chk"><input type="checkbox" id="aHalo" checked> Limpar halo e serrilhado nas bordas</label>
+        <div class="admbar">
+          <button class="btn" type="button" id="aGota">Conta-gotas: marcar cor de fundo</button>
+          <button class="btn" type="button" id="aGotaLimpa">Tirar cores marcadas</button>
+        </div>
         <button class="btn" type="button" id="aDet">Detectar quadros de novo</button>
         <div class="admmsg" id="aMsg"></div>
         <div class="admbar">
@@ -628,6 +638,24 @@ var ACOES = {
   charge:  { tipo: "nenhum", custo: 0,  ganhoKi: 40, mult: 0,   ult: 10 },
   ultimate:{ tipo: "longe", custo: 0,  ganhoKi: 0,  mult: 8.0, ult: 0 }
 };
+/* Habilidades de cada personagem (baseadas no anime). estilo: feixe, raio (fino e rápido), bola, rajada (vários tiros), missil, shuriken, combo (vários golpes de perto).
+   Quem não está aqui usa a rajada de ki padrão. Para mudar ou criar: copie uma linha e troque os nomes. */
+var HAB = {
+  "Yamcha":          { skill: { nome: "Punho da Presa de Lobo", estilo: "combo", hits: 4 }, special: { nome: "Sokidan", estilo: "bola", cor: "#ff9a3c" }, ultimate: { nome: "Kamehameha", estilo: "feixe", cor: "#4cc3f0" } },
+  "Tao Pai Pai":     { skill: { nome: "Chute giratório", estilo: "combo", hits: 2 }, special: { nome: "Dodon Pa", estilo: "raio", cor: "#ffd54a" }, ultimate: { nome: "Dodon Pa total", estilo: "raio", cor: "#ff7a3c", multi: 3 } },
+  "Mai":             { special: { nome: "Tiros de pistola", estilo: "rajada", cor: "#ffe08a", n: 8 }, ultimate: { nome: "Chuva de balas", estilo: "rajada", cor: "#ffe08a", n: 18 } },
+  "Robô do Pilaf":   { special: { nome: "Mísseis", estilo: "missil", cor: "#ff5c3c", n: 4 }, ultimate: { nome: "Salva de mísseis", estilo: "missil", cor: "#ff5c3c", n: 9 } },
+  "Ninja Murasaki":  { skill: { nome: "Clones de sombra", estilo: "combo", hits: 3 }, special: { nome: "Shurikens", estilo: "shuriken", cor: "#cfd8dc", n: 5 }, ultimate: { nome: "Chuva de shurikens", estilo: "shuriken", cor: "#cfd8dc", n: 14 } },
+  "Jackie Chun":     { special: { nome: "Onda de ki", estilo: "bola", cor: "#9be0ff" }, ultimate: { nome: "Kamehameha", estilo: "feixe", cor: "#4cc3f0" } },
+  "Tenshinhan":      { special: { nome: "Dodon Pa", estilo: "raio", cor: "#ffd54a" }, ultimate: { nome: "Kikoho", estilo: "feixe", cor: "#ffd54a" } },
+  "Piccolo Jr.":     { special: { nome: "Raio de ki", estilo: "raio", cor: "#c77dff" }, ultimate: { nome: "Makankosappo", estilo: "raio", cor: "#c77dff", multi: 2 } },
+  "Piccolo Daimaoh": { special: { nome: "Onda de ki", estilo: "bola", cor: "#9bdc5a" }, ultimate: { nome: "Onda explosiva", estilo: "feixe", cor: "#9bdc5a" } },
+  "Raditz":          { special: { nome: "Raio de ki", estilo: "raio", cor: "#ff8a3c" }, ultimate: { nome: "Double Sunday", estilo: "bola", cor: "#ffb347" } },
+  "Soldado RR":      { special: { nome: "Tiros", estilo: "rajada", cor: "#ffe08a", n: 5 } },
+  "Coronel Silver":  { special: { nome: "Tiros", estilo: "rajada", cor: "#ffe08a", n: 7 } },
+  "Metallic":        { special: { nome: "Mísseis", estilo: "missil", cor: "#ff5c3c", n: 3 } }
+};
+function habDe(c, tipo) { var h = HAB[c.base || c.nome]; return h && h[tipo] || null; }
 /* Progressão: cada nível dá +25% dos status base. O poder da fase sobe 16% do base a cada fase. */
 var BONUS_NIVEL = 0.25, SUBIDA_FASE = 0.16, NIVEL_MAX = 99;
 function custoTreino(nv) { return Math.round(20 * nv * (1 + nv / 20)); }
@@ -1017,6 +1045,10 @@ function desenhar() {
   var trava = G.busy || G.fim;
   $("bNormal").disabled = trava;
   $("bCharge").disabled = trava;
+  [["bSkill", "skill", "Skill", ACOES.skill.custo + " ki"], ["bSpecial", "special", "Special", ACOES.special.custo + " ki"], ["bUlt", "ultimate", "Ultimate", "atinge todos"]].forEach(function (q) {
+    var h = habDe(c, q[1]), b = $(q[0]), k = b.querySelector("small");
+    b.firstChild.nodeValue = h ? h.nome : q[2]; k.textContent = (h ? q[3] : q[3]);
+  });
   $("bSkill").disabled = trava || c.ki < ACOES.skill.custo;
   $("bSpecial").disabled = trava || c.ki < ACOES.special.custo;
   $("bUlt").disabled = trava || G.ult < 100;
@@ -1083,10 +1115,64 @@ function criaFx(tipo, x, y, w, h, cor) {
   $("stage").appendChild(d);
   return d;
 }
-async function golpeLonge(a, alvos, sentido, forte, aoBater) {
+function voar(el, x0, y0, x1, y1, dur, delay, arco, giro) {
+  var T = "translate(-50%,-50%)";
+  if (reduz || !el.animate) { el.style.left = x1 + "px"; el.style.top = y1 + "px"; return; }
+  var k = [{ left: x0 + "px", top: y0 + "px", transform: T + " rotate(0deg)" }];
+  if (arco) k.push({ left: (x0 + x1) / 2 + "px", top: (y0 + y1) / 2 - arco + "px", transform: T + " rotate(" + (giro || 0) / 2 + "deg)", offset: 0.5 });
+  k.push({ left: x1 + "px", top: y1 + "px", transform: T + " rotate(" + (giro || 0) + "deg)" });
+  el.animate(k, { duration: dur, delay: delay, easing: "linear", fill: "both" });
+}
+async function golpeProj(a, alvos, sentido, forte, aoBater, hab) {
   var sr = $("stage").getBoundingClientRect(), p = pu();
   var ar = a.el.querySelector(".spr").getBoundingClientRect();
-  var cor = sentido < 0 ? "#ff5c8a" : (forte ? "#ffd54a" : "#4cc3f0");
+  var cor = hab.cor || (sentido < 0 ? "#ff5c8a" : "#4cc3f0");
+  var ox = ar.left + ar.width / 2 + sentido * a.vis.w * 0.3 * p - sr.left;
+  var oy = ar.bottom - a.vis.h * 0.55 * p - sr.top;
+  var est = hab.estilo, n = hab.n || (est === "bola" ? 1 : 5), fx = [], ult = Math.max(0, 0);
+  tocar(a, a.sheet && a.sheet.anims.cast ? "cast" : "attack");
+  var carga = criaFx("orb", ox, oy, p * (forte ? 10 : 6), p * (forte ? 10 : 6), cor);
+  if (!reduz && carga.animate) carga.animate([{ transform: "translate(-50%,-50%) scale(.1)" }, { transform: "translate(-50%,-50%) scale(1)" }], { duration: TEMPO.carga, easing: "ease-out" });
+  await sleep(TEMPO.carga);
+  carga.remove();
+  tocar(a, a.sheet && a.sheet.anims.cast ? "cast" : "attack");
+  var dur = Math.round(TEMPO.viagem * (est === "bola" ? 1.1 : 0.75)), passo = est === "bola" ? 0 : Math.round(TEMPO.viagem * 0.5 / n), fim = 0, impactos = [];
+  alvos.forEach(function (t) {
+    var tr = t.el.querySelector(".spr").getBoundingClientRect();
+    var tx = tr.left + tr.width / 2 - sr.left, ty = tr.bottom - t.vis.h * 0.5 * p - sr.top;
+    for (var i = 0; i < n; i++) {
+      var tam = est === "bola" ? p * (forte ? 11 : 7) : est === "missil" ? p * 4.2 : est === "shuriken" ? p * 3.6 : p * 1.6;
+      var dy = est === "rajada" ? rnd(-p * 5, p * 5) : 0;
+      var el = criaFx(est === "shuriken" ? "shu" : est === "missil" ? "mis" : "proj", ox, oy, est === "missil" ? tam * 1.8 : tam, tam, cor);
+      if (est === "missil" && sentido < 0) el.style.transform = "translate(-50%,-50%) scaleX(-1)";
+      voar(el, ox, oy + (est === "rajada" ? rnd(-p * 2, p * 2) : 0), tx + rnd(-p * 2, p * 2), ty + dy, dur, i * passo, est === "missil" ? p * rnd(8, 18) : 0, est === "shuriken" ? sentido * 720 : 0);
+      fx.push(el);
+      impactos.push({ x: tx, y: ty, t: i * passo + dur, big: est === "bola" || est === "missil" });
+    }
+    fim = Math.max(fim, (n - 1) * passo + dur);
+  });
+  await sleep(Math.round(fim * 0.55));
+  var hit = false, t0 = Math.round(fim * 0.55);
+  var ordem = impactos.sort(function (u, v) { return u.t - v.t; }), booms = [];
+  for (var j = 0; j < ordem.length; j++) {
+    var im = ordem[j];
+    if (im.t - t0 > 0) { await sleep(Math.min(im.t - t0, 120)); t0 += Math.min(im.t - t0, 120); }
+    var dB = p * (im.big ? (forte ? 13 : 9) : 4);
+    var b = criaFx("boom", im.x, im.y, dB, dB, cor);
+    if (!reduz && b.animate) b.animate([{ transform: "translate(-50%,-50%) scale(.3)", opacity: 1 }, { transform: "translate(-50%,-50%) scale(1.4)", opacity: 0 }], { duration: im.big ? TEMPO.impacto : 280 });
+    booms.push(b);
+    if (!hit) { hit = true; aoBater(); }
+  }
+  if (!hit) aoBater();
+  await sleep(TEMPO.impacto);
+  fx.forEach(function (e) { e.remove(); }); booms.forEach(function (e) { e.remove(); });
+}
+async function golpeLonge(a, alvos, sentido, forte, aoBater, hab) {
+  if (hab && hab.estilo && hab.estilo !== "feixe" && hab.estilo !== "raio") return golpeProj(a, alvos, sentido, forte, aoBater, hab);
+  var raio = hab && hab.estilo === "raio";
+  var sr = $("stage").getBoundingClientRect(), p = pu();
+  var ar = a.el.querySelector(".spr").getBoundingClientRect();
+  var cor = hab && hab.cor || (sentido < 0 ? "#ff5c8a" : (forte ? "#ffd54a" : "#4cc3f0"));
   var ox = ar.left + ar.width / 2 + sentido * a.vis.w * 0.3 * p - sr.left;
   var oy = ar.bottom - a.vis.h * 0.55 * p - sr.top;
   var dOrb = p * (forte ? 12 : 7);
@@ -1099,7 +1185,7 @@ async function golpeLonge(a, alvos, sentido, forte, aoBater) {
   var feixes = alvos.map(function (t) {
     var tr = t.el.querySelector(".spr").getBoundingClientRect();
     var tx = tr.left + tr.width / 2 - sr.left, ty = tr.bottom - t.vis.h * 0.5 * p - sr.top;
-    var dx = tx - ox, dy = ty - oy, len = Math.sqrt(dx * dx + dy * dy), th = p * (forte ? 7 : 3.4);
+    var dx = tx - ox, dy = ty - oy, len = Math.sqrt(dx * dx + dy * dy), th = p * (raio ? 1.8 : forte ? 7 : 3.4);
     var f = criaFx("feixe", ox, oy - th / 2, len, th, cor);
     f.style.transform = "rotate(" + Math.atan2(dy, dx) + "rad)";
     var inner = document.createElement("i"); f.appendChild(inner);
@@ -1119,7 +1205,13 @@ async function golpeLonge(a, alvos, sentido, forte, aoBater) {
   feixes.forEach(function (z) { z.f.remove(); });
   boom.forEach(function (b) { b.remove(); });
 }
-function golpe(a, alvos, sentido, tipo, forte, aoBater) {
+async function golpe(a, alvos, sentido, tipo, forte, aoBater, hab) {
+  if (hab && hab.estilo === "combo") {
+    var n = hab.hits || 3;
+    for (var i = 0; i < n - 1; i++) { await golpeCorpo(a, alvos[0], sentido, function () { tremer(alvos[0].el, alvos[0]); }); if (!G || G.cancel) return; }
+    return golpeCorpo(a, alvos[0], sentido, aoBater);
+  }
+  if (hab && hab.estilo) return golpeLonge(a, alvos, sentido, forte, aoBater, hab);
   return tipo === "longe" ? golpeLonge(a, alvos, sentido, forte, aoBater) : golpeCorpo(a, alvos[0], sentido, aoBater);
 }
 
@@ -1189,7 +1281,8 @@ async function agir(tipo) {
   } else {
     var alvo = meu.inim[meu.alvo];
     var alvos = tipo === "ultimate" ? meu.inim.filter(function (e) { return e.vivo; }) : [alvo];
-    var nomes = { normal: "ataque normal", skill: "skill", special: "special", ultimate: "ULTIMATE" };
+    var hab = habDe(c, tipo);
+    var nomes = { normal: "ataque normal", skill: hab ? hab.nome : "skill", special: hab ? hab.nome : "special", ultimate: hab ? hab.nome.toUpperCase() : "ULTIMATE" };
     await golpe(c, alvos, +1, a.tipo, tipo === "ultimate", function () {
       var texto = [];
       alvos.forEach(function (e) {
@@ -1201,7 +1294,7 @@ async function agir(tipo) {
       });
       log(c.nome + " usa " + nomes[tipo] + ": " + texto.join(", "));
       desenhar();
-    });
+    }, hab);
     if (G !== meu || meu.cancel) return;
     await sleep(TEMPO.entreAcoes);
   }
@@ -1225,6 +1318,8 @@ async function turnoInimigos(meu) {
     if (!vivos.length) break;
     if (e.forte && meu.rodada % 3 === 0) {
       log(e.nome + " libera uma onda de ki em todo o time!");
+      var he = habDe(e, "special");
+      if (he) log(e.nome + " usa " + he.nome + "!");
       await golpe(e, vivos, -1, "longe", false, function () {
         vivos.forEach(function (c) {
           var d = Math.round(e.atk * 0.55 * rnd(0.9, 1.1));
@@ -1232,7 +1327,7 @@ async function turnoInimigos(meu) {
           flutuar(c.el, fmt(d)); tremer(c.el, c);
         });
         desenhar();
-      });
+      }, he);
     } else {
       var alvo = vivos[Math.floor(Math.random() * vivos.length)];
       await golpe(e, [alvo], -1, "corpo", false, function () {
@@ -1409,7 +1504,7 @@ function admAbrirFonte(n) {
   ED.anims = JSON.parse(JSON.stringify(f.anims)); ED.boxes = JSON.parse(JSON.stringify(f.boxes));
   $("aNome").value = n; $("aCred").value = ADM.regs[n] && ADM.regs[n].credito || ""; $("aOlha").value = sh.olha || "dir";
   $("aTipo").value = el.tipo && TIPOS[el.tipo] ? el.tipo : "m"; $("aHp").value = el.hp; $("aAtk").value = el.atk; $("aTem").checked = true;
-  $("aTol").value = f.tol; $("aJoin").value = f.join; $("aAlt").value = sh.altura || 22;
+  $("aTol").value = f.tol; $("aJoin").value = f.join; $("aAlt").value = sh.altura || 22; $("aBur").checked = true; $("aHalo").checked = true;
   admAbrirEditor();
   carregaImagem(f.fonte, function () { prepararQuadros(); refresca(); msg("Esta é a folha que o jogo já usa para " + n + ". Mude os quadros e salve para trocar; ou mude só vida, ataque e tamanho.", "ok"); });
 }
@@ -1466,7 +1561,7 @@ function fundosGlobais(d, w, h) {
   var pts = [], x, y;
   for (x = 0; x < w; x++) { pts.push([x, 0]); pts.push([x, h - 1]); }
   for (y = 0; y < h; y++) { pts.push([0, y]); pts.push([w - 1, y]); }
-  return dominantes(pts, d, w, 0.08).cores;
+  return dominantes(pts, d, w, 0.08).cores.concat(ED && ED.extra || []);
 }
 /* cor do fundo em volta de UM quadro: acerta folhas com regiões de cores diferentes */
 function fundosDoQuadro(d, w, h, b) {
@@ -1541,14 +1636,35 @@ function cortarQuadro(b) {
     var q = pil.pop(), qx = q % sw, qy = (q / sw) | 0;
     if (qx > 0) semear(qx - 1, qy); if (qx < sw - 1) semear(qx + 1, qy); if (qy > 0) semear(qx, qy - 1); if (qy < sh - 1) semear(qx, qy + 1);
   }
+  /* fundo preso: pedaços da cor do fundo cercados pelo personagem (vão entre braço e corpo) */
+  if ($("aBur").checked) {
+    var strict = new Uint8Array(sw * sh), vis = new Uint8Array(sw * sh);
+    for (y = 0; y < sh; y++) for (x = 0; x < sw; x++) { var q0 = y * sw + x; if (!rem[q0] && fundo[q0] && eFundo(d, ((Y0 + y) * w + X0 + x) * 4, bg, tol * 0.55)) strict[q0] = 1; }
+    for (var q1 = 0; q1 < sw * sh; q1++) {
+      if (!strict[q1] || vis[q1]) continue;
+      var comp = [q1], st = [q1]; vis[q1] = 1;
+      while (st.length) {
+        var qq = st.pop(), qx2 = qq % sw, qy2 = (qq / sw) | 0, viz = [];
+        if (qx2 > 0) viz.push(qq - 1); if (qx2 < sw - 1) viz.push(qq + 1); if (qy2 > 0) viz.push(qq - sw); if (qy2 < sh - 1) viz.push(qq + sw);
+        viz.forEach(function (v) { if (strict[v] && !vis[v]) { vis[v] = 1; comp.push(v); st.push(v); } });
+      }
+      if (comp.length >= 10) comp.forEach(function (v) { rem[v] = 1; });
+    }
+  }
+  /* halo: tira, em duas camadas, os pixels de borda que ainda são mistura com a cor do fundo */
+  if ($("aHalo").checked) [1.6, 2.3].forEach(function (m) {
+    var nov = [];
+    for (y = 0; y < sh; y++) for (x = 0; x < sw; x++) {
+      var k2 = y * sw + x; if (rem[k2]) continue;
+      if ((x === 0 || y === 0 || x === sw - 1 || y === sh - 1 || rem[k2 - 1] || rem[k2 + 1] || rem[k2 - sw] || rem[k2 + sw]) && eFundo(d, ((Y0 + y) * w + X0 + x) * 4, bg, tol * m)) nov.push(k2);
+    }
+    nov.forEach(function (v) { rem[v] = 1; });
+  });
   var cv = document.createElement("canvas"); cv.width = sw; cv.height = sh;
   var cx = cv.getContext("2d"), im = cx.createImageData(sw, sh), minx = sw, miny = sh, maxx = -1, maxy = -1;
   for (y = 0; y < sh; y++) for (x = 0; x < sw; x++) {
     var k = y * sw + x, o = k * 4, s = ((Y0 + y) * w + X0 + x) * 4;
     if (rem[k]) continue;
-    /* limpa a franja de cor do fundo na borda (imagens JPG) */
-    var borda = (x === 0 || y === 0 || x === sw - 1 || y === sh - 1 || rem[k - 1] || rem[k + 1] || rem[k - sw] || rem[k + sw]);
-    if (borda && eFundo(d, s, bg, tol * 1.6)) continue;
     im.data[o] = d[s]; im.data[o + 1] = d[s + 1]; im.data[o + 2] = d[s + 2]; im.data[o + 3] = 255;
     if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y;
   }
@@ -1611,7 +1727,7 @@ function montarFolha(anims, fr, olha, altura) {
 /* ---------- editor ---------- */
 var admTimer = null;
 function admNovoEstado() {
-  return { w: 0, h: 0, data: null, fonte: "", boxes: [], fr: [], anims: { idle: [], attack: [], hit: [], death: [], dead: [], cast: [] }, atual: "idle", editando: null };
+  return { extra: [], w: 0, h: 0, data: null, fonte: "", boxes: [], fr: [], anims: { idle: [], attack: [], hit: [], death: [], dead: [], cast: [] }, atual: "idle", editando: null };
 }
 function msg(t, tipo) { var m = $("aMsg"); m.textContent = t || ""; m.className = "admmsg" + (tipo ? " " + tipo : ""); }
 function admAbrirEditor() {
@@ -1625,7 +1741,7 @@ function admFecharEditor() { if (admTimer) { clearInterval(admTimer); admTimer =
 function admNovoClick() {
   ED = admNovoEstado(); ED.vista = "quadros";
   $("aNome").value = ""; $("aCred").value = ""; $("aOlha").value = "dir"; $("aTipo").value = "m"; $("aTem").checked = true;
-  $("aTol").value = 40; $("aJoin").value = 2; $("aAlt").value = 22; ajustaTipo();
+  $("aTol").value = 40; $("aJoin").value = 2; $("aAlt").value = 22; $("aBur").checked = true; $("aHalo").checked = true; ajustaTipo();
   admAbrirEditor();
 }
 function admEditar(n) {
@@ -1635,6 +1751,7 @@ function admEditar(n) {
   $("aNome").value = n; $("aCred").value = r.credito || ""; $("aOlha").value = r.olha; $("aTipo").value = r.tipo || "m";
   $("aHp").value = r.hp; $("aAtk").value = r.atk; $("aTem").checked = !!r.tem;
   $("aTol").value = r.tol; $("aJoin").value = r.join; $("aAlt").value = r.altura;
+  $("aBur").checked = r.bur !== false; $("aHalo").checked = r.halo !== false; ED.extra = r.extra || [];
   admAbrirEditor();
   carregaImagem(r.fonte, function () { ED.boxes = r.boxes; prepararQuadros(); refresca(); });
 }
@@ -1749,6 +1866,11 @@ function desenhaFolha() {
 }
 function cliqueFolha(ev) {
   var cv = $("aFolha"), r = cv.getBoundingClientRect(), px = (ev.clientX - r.left) * ED.w / r.width, py = (ev.clientY - r.top) * ED.h / r.height, achado = -1, area = 1e12;
+  if (ED.gota) {
+    var ii = (Math.floor(py) * ED.w + Math.floor(px)) * 4, dd = ED.data;
+    ED.extra.push([dd[ii], dd[ii + 1], dd[ii + 2], 255]); ED.gota = false;
+    prepararQuadros(); refresca(); msg("Cor marcada (" + ED.extra.length + "). Os quadros foram limpos de novo; use Detectar quadros se faltar algum.", "ok"); return;
+  }
   ED.boxes.forEach(function (b, i) {
     if (b.off) return;
     if (px >= b.x - 2 && px <= b.x + b.w + 2 && py >= b.y - 2 && py <= b.y + b.h + 2 && b.w * b.h < area) { achado = i; area = b.w * b.h; }
@@ -1795,7 +1917,7 @@ function admSalvar() {
   var r = {
     nome: nome, novo: novo, tipo: $("aTipo").value, hp: Math.max(1, +$("aHp").value || 1000), atk: Math.max(1, +$("aAtk").value || 100),
     tem: $("aTem").checked, olha: $("aOlha").value, altura: +$("aAlt").value, credito: $("aCred").value.trim(), cfg: cfg,
-    fonte: ED.fonte, boxes: ED.boxes, anims: ED.anims, tol: +$("aTol").value, join: +$("aJoin").value
+    fonte: ED.fonte, boxes: ED.boxes, anims: ED.anims, tol: +$("aTol").value, join: +$("aJoin").value, bur: $("aBur").checked, halo: $("aHalo").checked, extra: ED.extra
   };
   if (ED.editando && ED.editando !== nome) { /* nome mudou: o antigo continua */ }
   if (ADM.regs[nome]) { var velho = ADM.regs[nome]; if (!velho.novo && !r.novo) { /* mantém original */ } }
@@ -1894,6 +2016,10 @@ function admLigar() {
   $("aNome").oninput = atualizaModo;
   $("aTipo").onchange = ajustaTipo;
   ["aAlt", "aTol", "aJoin"].forEach(function (id) { $(id).oninput = atualizaLabels; });
+  function relimpa() { if (ED && ED.data) { prepararQuadros(); refresca(); } }
+  $("aTol").onchange = relimpa; $("aBur").onchange = relimpa; $("aHalo").onchange = relimpa;
+  $("aGota").onclick = function () { if (!ED || !ED.data) return msg("Escolha uma imagem primeiro.", "erro"); ED.vista = "folha"; ED.gota = true; refresca(); msg("Toque na folha, na cor que deve virar fundo. Pode tocar várias vezes.", "ok"); };
+  $("aGotaLimpa").onclick = function () { if (ED) { ED.extra = []; ED.gota = false; relimpa(); msg("Cores marcadas removidas.", "ok"); } };
 }
 
 montarElenco();
